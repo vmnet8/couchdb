@@ -14,9 +14,9 @@ script:
   - flag_amd64=$(compare "treehouses/debian:latest" "vmnet8/couchdb:latest" "amd64")
   - echo $DOCKERPASS | docker login -u "vmnet8" --password-stdin
   - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-  - build_image "vmnet8/debian:latest" arm "vmnet8/couchdb" $flag_arm
-  - build_image "vmnet8/debian:latest" arm64 "vmnet8/couchdb" $flag_arm64
-  - build_image "vmnet8/debian:latest" amd64 "vmnet8/couchdb" $flag_amd64
+  - build_image "treehouses/debian:latest" arm "vmnet8/couchdb" $flag_arm
+  - build_image "treehouses/debian:latest" arm64 "vmnet8/couchdb" $flag_arm64
+  - build_image "treehouses/debian:latest" amd64 "vmnet8/couchdb" $flag_amd64
   - flag=$(change $flag_arm $flag_arm64 $flag_amd64)
   - flag="true"
   - echo $flag
