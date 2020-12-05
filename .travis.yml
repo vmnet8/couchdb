@@ -9,9 +9,9 @@ services:
 script:
   - export DOCKER_CLI_EXPERIMENTAL=enabled
   - source utils.sh
-  - flag_arm=$(compare "treehouses/debian:latest" "vmnet8/couchdb:latest" "arm")
-  - flag_arm64=$(compare "treehouses/debian:latest" "vmnet8/couchdb:latest" "arm64")
-  - flag_amd64=$(compare "treehouses/debian:latest" "vmnet8/couchdb:latest" "amd64")
+  - flag_arm=$(compare "treehouses/debian:latest" "vmnet8/couchdb:20200814-2.3.1" "arm")
+  - flag_arm64=$(compare "treehouses/debian:latest" "vmnet8/couchdb:20200814-2.3.1" "arm64")
+  - flag_amd64=$(compare "treehouses/debian:latest" "vmnet8/couchdb:20200814-2.3.1" "amd64")
   - echo $DOCKERPASS | docker login -u "vmnet8" --password-stdin
   - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
   - build_image "treehouses/debian:latest" arm "vmnet8/couchdb" $flag_arm
