@@ -1,0 +1,42 @@
+sudo: required
+addons:
+  apt:
+    update: true
+    packages:
+      - docker-ce
+services:
+  - docker
+script:
+  - export DOCKER_CLI_EXPERIMENTAL=enabled
+  - source utils.sh
+  - flag_arm=$(compare "treehouses/debian:latest" "vmnet8/couchdb:20200814-2.3.1" "arm")
+  - flag_arm64=$(compare "treehouses/debian:latest" "vmnet8/couchdb:20200814-2.3.1" "arm64")
+  - flag_amd64=$(compare "treehouses/debian:latest" "vmnet8/couchdb:20200814-2.3.1" "amd64")
+  - echo $DOCKERPASS | docker login -u "vmnet8" --password-stdin
+  - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+  - build_image "treehouses/debian:latest" arm "vmnet8/couchdb" $flag_arm
+  - build_image "treehouses/debian:latest" arm64 "vmnet8/couchdb" $flag_arm64
+  - build_image "treehouses/debian:latest" amd64 "vmnet8/couchdb" $flag_amd64
+  - flag=$(change $flag_arm $flag_arm64 $flag_amd64)
+  - flag="true"
+  - echo $flag
+before_deploy:
+  - deploy_image "vmnet8/couchdb" arm
+  - deploy_image "vmnet8/couchdb" arm64
+  - deploy_image "vmnet8/couchdb" amd64
+  - tag1="latest"
+  - tag2=$(date +%Y%m%d%H%M)
+  - echo $tag2
+  - create_manifests vmnet8/couchdb $tag1 $tag2 vmnet8/couchdb-tags:amd64 vmnet8/couchdb-tags:arm vmnet8/couchdb-tags:arm64
+  - docker manifest inspect vmnet8/couchdb:$tag1
+  - docker manifest inspect vmnet8/couchdb:$tag2
+deploy:
+  - provider: script
+    script: docker manifest push vmnet8/couchdb:$tag1; docker manifest push vmnet8/couchdb:$tag2
+    skip_cleanup: true
+    on:
+      all_branches: true
+      condition: "$flag = true"
+env:
+  global:
+  - secure: dkfp69KWQ+HTWau1m3+0ArxpK+luZ/r29JxaO8vPCgI1S6Axd8R77HfDhCRh9skb1X3GmRJK0fENKRI/pqQ9Kd97qvFxki7H2ECNWbOSqXc8EaNEObzOsEvtlTbqrTCbI+U5j3VG3fi2t2p31iFghpykOqQHzDyS3PsmgpvYTbZKHxf+fbkbKpUw7jjVr9N99Uls60VRdmUiUU9KPmw9ppcJEsIw1bCP4vtBaBjkyFFcZvR4yXp/xs+3wDdRYGuGJ3LR6BHh5K/tLwBAKvPU5MHz/Sppg4y2kuc/70CwWd/VxdLQvPMhKmA5040pVWV6jcX1JkDzUvN4hWPNJm0n1w8KBJoYAvHjZ53wzHZK8dUlYUsc9IPrQywWYdaDH3Kop7oxlU1UhZXhG3PSQ+kdI/XUiZmCa5BTDKow6LuaEJ85QUKSECSuapXlNYswMX0OV1iefsm24wbkHZEmxPtFIsq/vgylNMygqyVCvRIW8vbiXCvZYENeWYFQZJfWRiMx1DlLw6+NeJYJdXYjFRHgoSPG79GrGdjxxAuhQe7Bu+luuZeayxle3ddwszs1bkEvPsQZBcsqsEk8bZXi3hV4vfktG1aN+yAo7GX24XOeQM/61HRR3JRv/jloAx98WSwE5vpV2BO/yG9BPVwZg0ei+TdzjrYdV8VYHMFC1Pbf+7g=
