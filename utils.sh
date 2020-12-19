@@ -49,6 +49,21 @@ is_base() {
   echo "true"
 }
 
+compare() {
+  local base_sha    # treehouses/alpine
+  local image_sha   # for example treehouses/node
+  local flag   # output
+  local base_repo=$1   # treehouses/alpine
+  local image_repo=$2  # treehouses/node
+  local arch=$3  #arm arm64 amd64
+  base_sha=$(get_manifest_sha $base_repo $arch)
+  #echo $base_sha
+  image_sha=$(get_manifest_sha $image_repo $arch)
+  #echo $image_sha
+  flag=$(is_base "$base_repo@"$base_sha "$image_repo@"$image_sha)
+  echo $flag
+}
+
 image_version() {
   local version
   repo=$1    # nginx repo
@@ -56,11 +71,11 @@ image_version() {
   echo $version
 }
 
-compare() {
-  result_arm=$(is_base $1 $2)
-  result_arm64=$(is_base $3 $4)
-  result_amd64=$(is_base $5 $6)
-  if [ $result_arm == "false" ] || [ $result_amd64 == "false" ] || [ $result_arm64 == "false" ];
+change() {
+  flag_arm=$1
+  flag_arm64=$2
+  flag_amd64=$3
+  if [ $flag_arm == "false" ] || [ $flag_arm64 == "false" ] || [ $flag_amd64 == "false" ];
   then
     echo "true"
   else
@@ -70,22 +85,28 @@ compare() {
 
 create_manifest() {
   local repo=$1
+  local tag=$2
+  local x86=$3
+  local rpi=$4
+  local arm64=$5
+  docker manifest create $repo:$tag $x86 $rpi $arm64
+  docker manifest annotate $repo:$tag $x86 --arch amd64
+  docker manifest annotate $repo:$tag $rpi --arch arm
+  docker manifest annotate $repo:$tag $arm64 --arch arm64
+}
+
+create_manifests() {
+  local repo=$1
   local tag1=$2
   local tag2=$3
   local x86=$4
   local rpi=$5
   local arm64=$6
-  docker manifest create $repo:$tag1 $x86 $rpi $arm64
-  docker manifest create $repo:$tag2 $x86 $rpi $arm64
-  docker manifest annotate $repo:$tag1 $x86 --arch amd64
-  docker manifest annotate $repo:$tag1 $rpi --arch arm
-  docker manifest annotate $repo:$tag1 $arm64 --arch arm64
-  docker manifest annotate $repo:$tag2 $x86 --arch amd64
-  docker manifest annotate $repo:$tag2 $rpi --arch arm
-  docker manifest annotate $repo:$tag2 $arm64 --arch arm64
+  create_manifest $repo $tag1 $x86 $rpi $arm64
+  create_manifest $repo $tag2 $x86 $rpi $arm64
 }
 
-build_image(){
+build_image() {
   local repo=$1  # this is the base repo, for example treehouses/alpine
   local arch=$2  #arm arm64 amd64
   local tag_repo=$3  # this is the tag repo, for example treehouses/node
@@ -110,7 +131,7 @@ build_image(){
   fi
 }
 
-deploy_image(){
+deploy_image() {
   local repo=$1
   local arch=$2  #arm arm64 amd64
   tag_arch=$repo-tags:$arch
